@@ -8,11 +8,11 @@
 /* Includes widgets ( storage,uitheme,columns,filter,stickyHeaders,resizable,saveSort ) */
 (function(factory) {
 	if (typeof define === 'function' && define.amd) {
-		define(['jquery'], factory);
+		define(function(){return factory;});
 	} else if (typeof module === 'object' && typeof module.exports === 'object') {
-		module.exports = factory(require('jquery'));
+		module.exports = factory;
 	} else {
-		factory(jQuery);
+		return factory;
 	}
 }(function(jQuery) {
 

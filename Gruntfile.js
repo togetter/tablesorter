@@ -37,11 +37,11 @@ module.exports = function( grunt ) {
 				// tablesorter core
 				coreBanner: '(function(factory) {\n' +
 					"	if (typeof define === 'function' && define.amd) {\n" +
-					"		define(['jquery'], factory);\n" +
+					"		define(function(){return factory;});\n" +
 					"	} else if (typeof module === 'object' && typeof module.exports === 'object') {\n" +
-					"		module.exports = factory(require('jquery'));\n" +
+					"		module.exports = factory;\n" +
 					'	} else {\n' +
-					'		factory(jQuery);\n' +
+					'		return factory;\n' +
 					'	}\n' +
 					'}(function(jQuery) {\n\n',
 				// widgets wrapper & combined wrapper - may need a separate entry when this wrapper is redefined to make
@@ -49,11 +49,11 @@ module.exports = function( grunt ) {
 				banner: '<%= pkg.banner %>/* Includes widgets ( <%= pkg.selectedWidgets %> <%= pkg.selectedParsers %>) */\n' +
 					'(function(factory) {\n' +
 					"	if (typeof define === 'function' && define.amd) {\n" +
-					"		define(['jquery'], factory);\n" +
+					"		define(function(){return factory;});\n" +
 					"	} else if (typeof module === 'object' && typeof module.exports === 'object') {\n" +
-					"		module.exports = factory(require('jquery'));\n" +
+					"		module.exports = factory;\n" +
 					'	} else {\n' +
-					'		factory(jQuery);\n' +
+					'		return factory;\n' +
 					'	}\n' +
 					'}(function(jQuery) {\n\n',
 				footer: '\nreturn jQuery.tablesorter;\n}));\n'
