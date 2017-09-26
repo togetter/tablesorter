@@ -192,6 +192,25 @@ jQuery(function($){
 		assert.deepEqual( processFilters( filters, false ), results );
 	});
 
+	QUnit.test( 'Filter comparison', function(assert) {
+		assert.expect(10);
+		var undef,
+			c = { columns: 10 }, // psuedo table.config
+			compare = this.ts.filter.equalFilters;
+
+		assert.equal( compare( c, [], [] ), true, 'two empty arrays' );
+		assert.equal( compare( c, [], '' ), true, 'empty array + empty string' );
+		assert.equal( compare( c, '', [] ), true, 'empty string + empty array' );
+		assert.equal( compare( c, ['', '', ''], [] ), true, 'empty array len 3 vs len 0' );
+		assert.equal( compare( c, ['1', undef, ''], ['1'] ), true, 'equal but diff len' );
+		assert.equal( compare( c, [undef, '1', ''], [undef, '1'] ), true, 'equal but diff len' );
+		assert.equal( compare( c, [] ), true, 'undefined second filter' );
+		assert.equal( compare( c, ['', undef] ), true, 'undefined second filter' );
+
+		assert.equal( compare( c, ['1', '', ''], ['', '1', ''] ), false, 'same value diff position' );
+		assert.equal( compare( c, [undef, '1', ''], ['', undef, '1'] ), false, 'same value diff position' );
+	});
+
 	QUnit.test( 'Filter searches', function(assert) {
 		var ts = this.ts,
 			c = this.c,
@@ -372,7 +391,7 @@ jQuery(function($){
 			ts = this.ts,
 			$table = this.$table,
 			table = this.table;
-		assert.expect(3);
+		assert.expect(4);
 
 		return QUnit.SequentialRunner(
 			function(actions, assertions) {
@@ -382,9 +401,13 @@ jQuery(function($){
 			function(){ ts.setFilters( table, ['abc 1'] ); },
 			function(){ assert.cacheCompare( table, 0, ['abc 1'], 'select exact search', true ); }
 		).nextTask(
+			function(){ ts.setFilters( table, ['/abc\\s1$/'] ); },
+			function(){ assert.cacheCompare( table, 0, ['abc 1'], 'select exact search using regex', true ); }
+		).nextTask(
 			function(){
 				$table.find( '.filter-select' ).eq(0).addClass( 'filter-match' );
-				ts.setFilters( table, [ 'abc 1' ] ); },
+				ts.setFilters( table, [ 'abc 1' ] );
+			},
 			function(){ assert.cacheCompare( table, 0, ['abc 1', 'abc 11', 'ABC 10'], 'select match search', true ); }
 		).nextTask(
 			function(){ ts.setFilters( table, ['', '1'] ); },

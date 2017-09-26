@@ -48,8 +48,8 @@ tablesorter (FORK) is a jQuery plugin for turning a standard HTML table with THE
 ### Licensing
 
 * Copyright (c) 2007 Christian Bach.
-* Original examples and docs at: [http://tablesorter.com](http://tablesorter.com).
-* Dual licensed under the [MIT](https://opensource.org/licenses/mit-license.php) or [GPL](https://www.gnu.org/licenses/gpl.html) licenses (pick one).
+* The original version can be found at [http://tablesorter.com](http://tablesorter.com), or on [GitHub](https://github.com/christianbach/tablesorter).
+* Dual licensed under the [MIT](https://opensource.org/licenses/mit-license.php) or [GPLv2](https://www.gnu.org/licenses/gpl-2.0.html) licenses (pick one).
 
 ### Download
 
@@ -62,7 +62,7 @@ tablesorter (FORK) is a jQuery plugin for turning a standard HTML table with THE
 ### Related Projects
 
 * [Plugin for Rails](https://github.com/themilkman/jquery-tablesorter-rails). Maintained by [themilkman](https://github.com/themilkman).
-* [UserFrosting](https://github.com/alexweissman/UserFrosting) (A secure, modern user management system for PHP that uses tablesorter) by [alexweissman](https://github.com/alexweissman).
+* [UserFrosting](https://www.userfrosting.com) (A secure, modern user management system for PHP that uses tablesorter) by [@alexweissman](https://github.com/alexweissman).
 * [Grav CMS](https://getgrav.org/): `bin/gpm install tablesorter` ([ref](https://github.com/Perlkonig/grav-plugin-tablesorter)).
 * [tablesorter-pagercontrols](https://github.com/isg-software/tablesorter-pagercontrols) &ndash; programmatically adds pager controls below a table and applies the pager add-on for large HTML tables by [isg-software](https://github.com/isg-software).
 
@@ -82,7 +82,7 @@ If you would like to contribute, please...
 * Big thanks to [ThsSin-](https://github.com/TheSin-) for taking over for a while and also providing valuable feedback.
 * Thanks to [prijutme4ty](https://github.com/prijutme4ty) for numerous contributions!
 * Also extra thanks to [christhomas](https://github.com/christhomas) and [Lynesth](https://github.com/Lynesth) for help with code.
-* And, of course thanks to everyone else that has contributed, and continues to contribute to this forked project!
+* And, of course thanks to everyone else that has [contributed](https://github.com/Mottie/tablesorter/blob/master/AUTHORS), and continues to contribute through pull requests and open issues to this forked project!
 
 [npm-url]: https://npmjs.org/package/tablesorter
 [npm-image]: https://img.shields.io/npm/v/tablesorter.svg
@@ -104,58 +104,48 @@ If you would like to contribute, please...
 
 View the [complete change log here](https://github.com/Mottie/tablesorter/wiki/Changes).
 
-#### <a name="v2.28.5">Version 2.28.5</a> (1/28/2017)
+#### <a name="v2.28.15">Version 2.28.15</a> (7/4/2017)
 
-* Docs: Fix "update" labels.
-* Output:
-  * Prevent multiple popups/download with dblClick (i.e. triggering "outputTable" multiple times).
-  * Remove extraneous console log.
-* Resizable:
-  * Add "resizableUpdate" & "resizableReset" methods.
-* Scroller:
-  * Add `scrollerComplete` event. Fixes [issue #1351](https://github.com/Mottie/tablesorter/issues/1351).
-* Readme: Add related project, tablesorter-pagercontrols
+* Core:
+  * Use calculated index instead of DOM index. See [pull #1424](https://github.com/Mottie/tablesorter/pull/1424); thanks [@ced-b](https://github.com/ced-b)!
+  * Fix check count cell indexing.
+* ColumnSelector:
+  * Remove colspan adjustments when widget removed.
+  * Include tbody colspan updates on removal.
+* Filter:
+  * Add namespacing to filter-formatter listeners. Needed to prevent JS error when a "resetToLoadState" is triggered and the "filterFomatterUpdate" bindings are still firing.
+  * Fix namespacing of events.
+* Sort2Hash:
+  * Prevent filter update if unchanged & compare (with) hash filter.
+  * Fix p's (reference to pager object).
+* Docs
+  * CSS fixed to comply with editable_wrapContent : `<div>`. See [pull #1420](https://github.com/Mottie/tablesorter/pull/1420); thanks [@LaurentBarbareau](https://github.com/LaurentBarbareau)!
+  * Remove note on contenteditable wrapping. See [pull #1420](https://github.com/Mottie/tablesorter/pull/1420).
+  * Update pager widget options in demo code.
+  * Use src files in filter formatter demo for testing.
+* Meta:
+  * Include `js` & `css` folders with bower installs.
 
-#### <a name="v2.28.4">Version 2.28.4</a> (1/6/2017)
+#### <a name="v2.28.14">Version 2.28.14</a> (6/8/2017)
 
-* Docs:
-  * Add more notes about moving "ipAddress" parser into an external file. See [issue #1344](https://github.com/Mottie/tablesorter/issues/1344).
-  * Load storage widget in grouping widget demo. Fixes [issue #1346](https://github.com/Mottie/tablesorter/issues/1346).
-  * Add page header section to grouping child demo. See [issue #1346](https://github.com/Mottie/tablesorter/issues/1346).
-  * Include jQuery in page header section in various demos.
-  * Add page header to output demo. See [issue #1349](https://github.com/Mottie/tablesorter/issues/1349).
-  * Add comma to broken output demo.
-  * Add info on output to Excel in output widget demo. See [issue #1349](https://github.com/Mottie/tablesorter/issues/1349).
-  * Renamed [Bootstrap v2.x demo](https://mottie.github.io/tablesorter/docs/example-option-theme-bootstrap-v2.html).
-  * Renamed [Bootstrap v3.x demo](https://mottie.github.io/tablesorter/docs/example-option-theme-bootstrap-v3.html).
-  * Created [Bootstrap v4.x demo](https://mottie.github.io/tablesorter/docs/example-option-theme-bootstrap-v4.html).
-  * Update all Bootstrap links to point to Bootstrap v3.x demo.
-  * Maintain minimal original [Bootstrap demo](https://mottie.github.io/tablesorter/docs/example-widget-bootstrap-theme.html).
-* Output:
-  * Prevent error on output to an already open popup.
-  * Add `output_savePlugin` option &amp; update download code.
-  * Add `output_includeHeader` option &amp; docs. Fixes [issue #1349](https://github.com/Mottie/tablesorter/issues/1349).
+* Core:
+  * Show console error for mismatched column count. See [issue #1415](https://github.com/Mottie/tablesorter/issues/1415).
 * Pager:
-  * (widget only) make compatible with stickyHeaders. [Fixes #1313](https://github.com/Mottie/tablesorter/issues/1313):
-    * Removed all references to stored `pager.$goto` and `pager.$size`
-    * Removed check if header text matches header length - this breaks when a header row has a "tablesorter-ignoreRow" class name.
-    * Add stickyHeader container to `pager.$container` in case the pager controls are inside the thead.
-  * Fix rendering of sticky headers after ajax.
-  * Use option to target inner header.
-  * Restore check for new headers. [Fixes #1343](https://github.com/Mottie/tablesorter/issues/1343).
-  * Add `data-attribute` override on output. See [issue #1348](https://github.com/Mottie/tablesorter/issues/1348).
-* StickHeaders:
-  * Reduce widget priority below the pager widget priority.
-* Theme:
-  * Add group widget css file. See [issue #1346](https://github.com/Mottie/tablesorter/issues/1346).
-  * Add column widget support to Bootstrap. See [issue #1347](https://github.com/Mottie/tablesorter/issues/1347).
-  * Update high-specificity blue theme - [demo](https://jsfiddle.net/Mottie/k9uasLc7/); see [Stack Overflow](http://stackoverflow.com/q/41472634/145346).
-  * Add `theme.bootstrap_4.css` file ([demo](https://mottie.github.io/tablesorter/docs/example-option-theme-bootstrap-v4.html); Bootstrap v4-alpha - do not use in production!).
-  * Duplicated `theme.bootstrap_3.css` from `theme.bootstrap.css` (maintaining this non-versioned file name until Bootstrap v4-stable has been available for about 6 months).
-* Readme:
-  * Update log for v2.28.3.
+  * (addon) Ensure ajax is called after filter widget init. Fixes [issue #1389](https://github.com/Mottie/tablesorter/issues/1389).
+  * (addon) Fix height issues for certain browsers (border-spacing). See [pull #1418](https://github.com/Mottie/tablesorter/pull/1418); thanks [@DoctorWhite](https://github.com/DoctorWhite)
+  * (widget) Apply height adjustment code to pager widget.
+  * Use selectorRemove to remove error rows. Removes error rows with dynamically changed class names.
+* Meta:
+  * Added [AUTHORS](https://github.com/Mottie/tablesorter/blob/master/AUTHORS) file.
 
-#### <a name="v2.28.3">Version 2.28.3</a> (12/16/2016)
+#### <a name="v2.28.13">Version 2.28.13</a> (6/2/2017)
 
-* Core: Fix internal version numbering.
-* Grunt: add version check.
+* Core:
+  * Add cssIconDisabled option. See [issue #1409](https://github.com/Mottie/tablesorter/issues/1409).
+  * Coerce sort natural elements into strings. See [issue #1415](https://github.com/Mottie/tablesorter/issues/1415).
+* StickyHeaders:
+  * Fix dynamic updating of offset. Fixes [issue #1412](https://github.com/Mottie/tablesorter/issues/1412).
+  * Init with visible headers on partial scroll
+* Meta:
+  * Set jQuery dependency back to >=1.2.6. Fixes [issue #1411](https://github.com/Mottie/tablesorter/issues/1411).
+  * Add `package-lock.json` file.

@@ -8,7 +8,7 @@
 	}
 }(function(jQuery) {
 
-/*! TableSorter (FORK) v2.28.5 *//*
+/*! TableSorter (FORK) v2.28.15 *//*
 * Client-side table sorting with ease!
 * @requires jQuery v1.2.6+
 *
@@ -32,7 +32,7 @@
 	'use strict';
 	var ts = $.tablesorter = {
 
-		version : '2.28.5',
+		version : '2.28.15',
 
 		parsers : [],
 		widgets : [],
@@ -108,6 +108,7 @@
 			cssIconNone      : '', // class name added to the icon when there is no column sort
 			cssIconAsc       : '', // class name added to the icon when the column has an ascending sort
 			cssIconDesc      : '', // class name added to the icon when the column has a descending sort
+			cssIconDisabled  : '', // class name added to the icon when the column has a disabled sort
 
 			// *** events
 			pointerClick     : 'click',
@@ -264,11 +265,6 @@
 			if ( !/tablesorter\-/.test( $table.attr( 'class' ) ) ) {
 				tmp = ( c.theme !== '' ? ' tablesorter-' + c.theme : '' );
 			}
-			c.table = table;
-			c.$table = $table
-				.addClass( ts.css.table + ' ' + c.tableClass + tmp )
-				.attr( 'role', 'grid' );
-			c.$headers = $table.find( c.selectorHeaders );
 
 			// give the table a unique id, which will be used in namespace binding
 			if ( !c.namespace ) {
@@ -277,6 +273,14 @@
 				// make sure namespace starts with a period & doesn't have weird characters
 				c.namespace = '.' + c.namespace.replace( ts.regex.nonWord, '' );
 			}
+
+			c.table = table;
+			c.$table = $table
+				// add namespace to table to allow bindings on extra elements to target
+				// the parent table (e.g. parser-input-select)
+				.addClass( ts.css.table + ' ' + c.tableClass + tmp + ' ' + c.namespace.slice(1) )
+				.attr( 'role', 'grid' );
+			c.$headers = $table.find( c.selectorHeaders );
 
 			c.$table.children().children( 'tr' ).attr( 'role', 'row' );
 			c.$tbodies = $table.children( 'tbody:not(.' + c.cssInfoBlock + ')' ).attr({
@@ -334,8 +338,8 @@
 			// show processesing icon
 			if ( c.showProcessing ) {
 				$table
-				.unbind( 'sortBegin' + c.namespace + ' sortEnd' + c.namespace )
-				.bind( 'sortBegin' + c.namespace + ' sortEnd' + c.namespace, function( e ) {
+				.off( 'sortBegin' + c.namespace + ' sortEnd' + c.namespace )
+				.on( 'sortBegin' + c.namespace + ' sortEnd' + c.namespace, function( e ) {
 					clearTimeout( c.timerProcessing );
 					ts.isProcessing( table );
 					if ( e.type === 'sortBegin' ) {
@@ -368,40 +372,50 @@
 					.join( namespace + ' ' );
 			// apply easy methods that trigger bound events
 			$table
-			.unbind( events.replace( ts.regex.spaces, ' ' ) )
-			.bind( 'sortReset' + namespace, function( e, callback ) {
+			.off( events.replace( ts.regex.spaces, ' ' ) )
+			.on( 'sortReset' + namespace, function( e, callback ) {
 				e.stopPropagation();
 				// using this.config to ensure functions are getting a non-cached version of the config
-				ts.sortReset( this.config, callback );
+				ts.sortReset( this.config, function( table ) {
+					if (table.isApplyingWidgets) {
+						// multiple triggers in a row... filterReset, then sortReset - see #1361
+						// wait to update widgets
+						setTimeout( function() {
+							ts.applyWidget( table, '', callback );
+						}, 100 );
+					} else {
+						ts.applyWidget( table, '', callback );
+					}
+				});
 			})
-			.bind( 'updateAll' + namespace, function( e, resort, callback ) {
+			.on( 'updateAll' + namespace, function( e, resort, callback ) {
 				e.stopPropagation();
 				ts.updateAll( this.config, resort, callback );
 			})
-			.bind( 'update' + namespace + ' updateRows' + namespace, function( e, resort, callback ) {
+			.on( 'update' + namespace + ' updateRows' + namespace, function( e, resort, callback ) {
 				e.stopPropagation();
 				ts.update( this.config, resort, callback );
 			})
-			.bind( 'updateHeaders' + namespace, function( e, callback ) {
+			.on( 'updateHeaders' + namespace, function( e, callback ) {
 				e.stopPropagation();
 				ts.updateHeaders( this.config, callback );
 			})
-			.bind( 'updateCell' + namespace, function( e, cell, resort, callback ) {
+			.on( 'updateCell' + namespace, function( e, cell, resort, callback ) {
 				e.stopPropagation();
 				ts.updateCell( this.config, cell, resort, callback );
 			})
-			.bind( 'addRows' + namespace, function( e, $row, resort, callback ) {
+			.on( 'addRows' + namespace, function( e, $row, resort, callback ) {
 				e.stopPropagation();
 				ts.addRows( this.config, $row, resort, callback );
 			})
-			.bind( 'updateComplete' + namespace, function() {
+			.on( 'updateComplete' + namespace, function() {
 				this.isUpdating = false;
 			})
-			.bind( 'sorton' + namespace, function( e, list, callback, init ) {
+			.on( 'sorton' + namespace, function( e, list, callback, init ) {
 				e.stopPropagation();
 				ts.sortOn( this.config, list, callback, init );
 			})
-			.bind( 'appendCache' + namespace, function( e, callback, init ) {
+			.on( 'appendCache' + namespace, function( e, callback, init ) {
 				e.stopPropagation();
 				ts.appendCache( this.config, init );
 				if ( $.isFunction( callback ) ) {
@@ -409,39 +423,39 @@
 				}
 			})
 			// $tbodies variable is used by the tbody sorting widget
-			.bind( 'updateCache' + namespace, function( e, callback, $tbodies ) {
+			.on( 'updateCache' + namespace, function( e, callback, $tbodies ) {
 				e.stopPropagation();
 				ts.updateCache( this.config, callback, $tbodies );
 			})
-			.bind( 'applyWidgetId' + namespace, function( e, id ) {
+			.on( 'applyWidgetId' + namespace, function( e, id ) {
 				e.stopPropagation();
 				ts.applyWidgetId( this, id );
 			})
-			.bind( 'applyWidgets' + namespace, function( e, init ) {
+			.on( 'applyWidgets' + namespace, function( e, callback ) {
 				e.stopPropagation();
-				// apply widgets
-				ts.applyWidget( this, init );
+				// apply widgets (false = not initializing)
+				ts.applyWidget( this, false, callback );
 			})
-			.bind( 'refreshWidgets' + namespace, function( e, all, dontapply ) {
+			.on( 'refreshWidgets' + namespace, function( e, all, dontapply ) {
 				e.stopPropagation();
 				ts.refreshWidgets( this, all, dontapply );
 			})
-			.bind( 'removeWidget' + namespace, function( e, name, refreshing ) {
+			.on( 'removeWidget' + namespace, function( e, name, refreshing ) {
 				e.stopPropagation();
 				ts.removeWidget( this, name, refreshing );
 			})
-			.bind( 'destroy' + namespace, function( e, removeClasses, callback ) {
+			.on( 'destroy' + namespace, function( e, removeClasses, callback ) {
 				e.stopPropagation();
 				ts.destroy( this, removeClasses, callback );
 			})
-			.bind( 'resetToLoadState' + namespace, function( e ) {
+			.on( 'resetToLoadState' + namespace, function( e ) {
 				e.stopPropagation();
 				// remove all widgets
 				ts.removeWidget( this, true, false );
 				var tmp = $.extend( true, {}, c.originalSettings );
 				// restore original settings; this clears out current settings, but does not clear
 				// values saved to storage.
-				c = $.extend( true, ts.defaults, tmp );
+				c = $.extend( true, {}, ts.defaults, tmp );
 				c.originalSettings = tmp;
 				this.hasInitialized = false;
 				// setup the entire table again
@@ -457,9 +471,9 @@
 				downTarget = null;
 			if ( core !== true ) {
 				$headers.addClass( namespace.slice( 1 ) + '_extra_headers' );
-				tmp = $.fn.closest ? $headers.closest( 'table' )[ 0 ] : $headers.parents( 'table' )[ 0 ];
-				if ( tmp && tmp.nodeName === 'TABLE' && tmp !== table ) {
-					$( tmp ).addClass( namespace.slice( 1 ) + '_extra_table' );
+				tmp = ts.getClosest( $headers, 'table' );
+				if ( tmp.length && tmp[ 0 ].nodeName === 'TABLE' && tmp[ 0 ] !== table ) {
+					$( tmp[ 0 ] ).addClass( namespace.slice( 1 ) + '_extra_table' );
 				}
 			}
 			tmp = ( c.pointerDown + ' ' + c.pointerUp + ' ' + c.pointerClick + ' sort keyup ' )
@@ -471,8 +485,8 @@
 			// http://stackoverflow.com/questions/5312849/jquery-find-self;
 			.find( c.selectorSort )
 			.add( $headers.filter( c.selectorSort ) )
-			.unbind( tmp )
-			.bind( tmp, function( e, external ) {
+			.off( tmp )
+			.on( tmp, function( e, external ) {
 				var $cell, cell, temp,
 					$target = $( e.target ),
 					// wrap event type in spaces, so the match doesn't trigger on inner words
@@ -511,8 +525,7 @@
 					ts.buildCache( c );
 				}
 				// jQuery v1.2.6 doesn't have closest()
-				$cell = $.fn.closest ? $( this ).closest( 'th, td' ) :
-					/TH|TD/.test( this.nodeName ) ? $( this ) : $( this ).parents( 'th, td' );
+				$cell = ts.getHeaderCell( $( this ) );
 				// reference original table headers and find the same cell
 				// don't use $headers or IE8 throws an error - see #987
 				temp = $headers.index( $cell );
@@ -527,7 +540,7 @@
 				// cancel selection
 				$headers
 					.attr( 'unselectable', 'on' )
-					.bind( 'selectstart', false )
+					.on( 'selectstart', false )
 					.css({
 						'user-select' : 'none',
 						'MozUserSelect' : 'none' // not needed for jQuery 1.8+
@@ -552,7 +565,7 @@
 				'';
 			// redefine c.$headers here in case of an updateAll that replaces or adds an entire header cell - see #683
 			c.$headers = $( $.map( c.$table.find( c.selectorHeaders ), function( elem, index ) {
-				var configHeaders, header, column, template, tmp,
+				var configHeaders, header, column, template, tmp, $th,
 					$elem = $( elem );
 				// ignore cell (don't add it to c.$headers) if row has ignoreRow class
 				if ( $elem.parent().hasClass( c.cssIgnoreRow ) ) { return; }
@@ -578,7 +591,9 @@
 				if ( c.onRenderHeader ) {
 					c.onRenderHeader.apply( $elem, [ index, c, c.$table ] );
 				}
-				column = parseInt( $elem.attr( 'data-column' ), 10 );
+				// data-column stored on th or td only
+				$th = ts.getHeaderCell( $elem );
+				column = parseInt( $th.attr( 'data-column' ), 10 );
 				elem.column = column;
 				tmp = ts.getOrder( ts.getData( $elem, configHeaders, 'sortInitialOrder' ) || c.sortInitialOrder );
 				// this may get updated numerous times if there are multiple rows
@@ -596,10 +611,9 @@
 				}
 				// add cell to headerList
 				c.headerList[ index ] = elem;
+				$elem.addClass( ts.css.header + ' ' + c.cssHeader );
 				// add to parent in case there are multiple rows
-				$elem
-					.addClass( ts.css.header + ' ' + c.cssHeader )
-					.parent()
+				ts.getClosest( $elem, 'tr' )
 					.addClass( ts.css.headerRow + ' ' + c.cssHeaderRow )
 					.attr( 'role', 'row' );
 				// allow keyboard cursor to focus on element
@@ -676,8 +690,9 @@
 					for ( indx = 0; indx < max; indx++ ) {
 						header = c.$headerIndexed[ colIndex ];
 						if ( header && header.length ) {
-							// get column indexed table cell
-							configHeaders = ts.getColumnData( table, c.headers, colIndex );
+							// get column indexed table cell; adding true parameter fixes #1362 but
+							// it would break backwards compatibility...
+							configHeaders = ts.getColumnData( table, c.headers, colIndex ); // , true );
 							// get column parser/extractor
 							extractor = ts.getParserById( ts.getData( header, configHeaders, 'extractor' ) );
 							parser = ts.getParserById( ts.getData( header, configHeaders, 'sorter' ) );
@@ -1070,7 +1085,7 @@
 		▀████▀ ██     █████▀ ██  ██   ██   ██████
 		*/
 		setHeadersCss : function( c ) {
-			var $sorted, indx, column,
+			var indx, column,
 				list = c.sortList,
 				len = list.length,
 				none = ts.css.sortNone + ' ' + c.cssNone,
@@ -1078,20 +1093,32 @@
 				cssIcon = [ c.cssIconAsc, c.cssIconDesc, c.cssIconNone ],
 				aria = [ 'ascending', 'descending' ],
 				// find the footer
-				$headers = c.$table
+				$extras = c.$table
 					.find( 'tfoot tr' )
 					.children( 'td, th' )
 					.add( $( c.namespace + '_extra_headers' ) )
-					.removeClass( css.join( ' ' ) );
-			// remove all header information
-			c.$headers
-				.add( $( 'thead ' + c.namespace + '_extra_headers' ) )
-				.removeClass( css.join( ' ' ) )
-				.addClass( none )
-				.attr( 'aria-sort', 'none' )
+					.removeClass( css.join( ' ' ) ),
+				// remove all header information
+				$sorted = c.$headers
+					.add( $( 'thead ' + c.namespace + '_extra_headers' ) )
+					.removeClass( css.join( ' ' ) )
+					.addClass( none )
+					.attr( 'aria-sort', 'none' )
+					.find( '.' + ts.css.icon )
+					.removeClass( cssIcon.join( ' ' ) )
+					.end();
+			// add css none to all sortable headers
+			$sorted
+				.not( '.sorter-false' )
 				.find( '.' + ts.css.icon )
-				.removeClass( cssIcon.join( ' ' ) )
 				.addClass( cssIcon[ 2 ] );
+			// add disabled css icon class
+			if ( c.cssIconDisabled ) {
+				$sorted
+					.filter( '.sorter-false' )
+					.find( '.' + ts.css.icon )
+					.addClass( c.cssIconDisabled );
+			}
 			for ( indx = 0; indx < len; indx++ ) {
 				// direction = 2 means reset!
 				if ( list[ indx ][ 1 ] !== 2 ) {
@@ -1128,8 +1155,8 @@
 							}
 						}
 						// add sorted class to footer & extra headers, if they exist
-						if ( $headers.length ) {
-							$headers
+						if ( $extras.length ) {
+							$extras
 								.filter( '[data-column="' + list[ indx ][ 0 ] + '"]' )
 								.removeClass( none )
 								.addClass( css[ list[ indx ][ 1 ] ] );
@@ -1144,10 +1171,29 @@
 			}
 		},
 
+		// This function does NOT return closest if the $el matches the selector
+		getClosest : function( $el, selector ) {
+			return $.fn.closest ?
+				$el.closest( selector ) :
+				$el.parents( selector ).filter( ':first' );
+		},
+
+		getHeaderCell : function( $el ) {
+			// jQuery v1.2.6 doesn't have closest()
+			if ( $.fn.closest ) {
+				return $el.closest( 'th, td' );
+			}
+			return /TH|TD/.test( $el[0].nodeName ) ?
+				$el :
+				$el.parents( 'th, td' ).filter( ':first' );
+		},
+
 		// nextSort (optional), lets you disable next sort text
 		setColumnAriaLabel : function( c, $header, nextSort ) {
 			if ( $header.length ) {
-				var column = parseInt( $header.attr( 'data-column' ), 10 ),
+				var $th = ts.getHeaderCell( $header ),
+					// data-column always stored on the th/td
+					column = parseInt( $th.attr( 'data-column' ), 10 ),
 					vars = c.sortVars[ column ],
 					tmp = $header.hasClass( ts.css.sortAsc ) ?
 						'sortAsc' :
@@ -1285,6 +1331,12 @@
 		},
 
 		updateCell : function( c, cell, resort, callback ) {
+			// updateCell for child rows is a mess - we'll ignore them for now
+			// eventually I'll break out the "update" row cache code to make everything consistent
+			if ( $( cell ).closest( 'tr' ).hasClass( c.cssChildRow ) ) {
+				console.warn('Tablesorter Warning! "updateCell" for child row content has been disabled, use "update" instead');
+				return;
+			}
 			if ( ts.isEmptyObject( c.cache ) ) {
 				// empty table, do an update instead - fixes #1099
 				ts.updateHeader( c );
@@ -1299,14 +1351,13 @@
 				$cell = $( cell ),
 				// update cache - format: function( s, table, cell, cellIndex )
 				// no closest in jQuery v1.2.6
-				tbodyIndex = $tbodies
-					.index( $.fn.closest ? $cell.closest( 'tbody' ) : $cell.parents( 'tbody' ).filter( ':first' ) ),
+				tbodyIndex = $tbodies.index( ts.getClosest( $cell, 'tbody' ) ),
 				tbcache = c.cache[ tbodyIndex ],
-				$row = $.fn.closest ? $cell.closest( 'tr' ) : $cell.parents( 'tr' ).filter( ':first' );
+				$row = ts.getClosest( $cell, 'tr' );
 			cell = $cell[ 0 ]; // in case cell is a jQuery object
 			// tbody may not exist if update is initialized while tbody is removed for processing
 			if ( $tbodies.length && tbodyIndex >= 0 ) {
-				row = $tbodies.eq( tbodyIndex ).find( 'tr' ).index( $row );
+				row = $tbodies.eq( tbodyIndex ).find( 'tr' ).not( '.' + c.cssChildRow ).index( $row );
 				cache = tbcache.normalized[ row ];
 				len = $row[ 0 ].cells.length;
 				if ( len !== c.columns ) {
@@ -1327,7 +1378,6 @@
 				cache[ c.columns ].raw[ icell ] = tmp;
 				tmp = ts.getParsedText( c, cell, icell, tmp );
 				cache[ icell ] = tmp; // parsed
-				cache[ c.columns ].$row = $row;
 				if ( ( c.parsers[ icell ].type || '' ).toLowerCase() === 'numeric' ) {
 					// update column max value (ignore sign)
 					tbcache.colMax[ icell ] = Math.max( Math.abs( tmp ) || 0, tbcache.colMax[ icell ] || 0 );
@@ -1358,11 +1408,13 @@
 			if ( valid ) {
 				$row = $( $row );
 				c.$tbodies.append( $row );
-			} else if ( !$row ||
+			} else if (
+				!$row ||
 				// row is a jQuery object?
 				!( $row instanceof jQuery ) ||
 				// row contained in the table?
-				( $.fn.closest ? $row.closest( 'table' )[ 0 ] : $row.parents( 'table' )[ 0 ] ) !== c.table ) {
+				( ts.getClosest( $row, 'table' )[ 0 ] !== c.table )
+			) {
 				if ( c.debug ) {
 					console.error( 'addRows method requires (1) a jQuery selector reference to rows that have already ' +
 						'been added to the table, or (2) row HTML string to be added to a table with only one tbody' );
@@ -1509,10 +1561,10 @@
 				notMultiSort = !event[ c.sortMultiSortKey ],
 				table = c.table,
 				len = c.$headers.length,
-				// get current column index
-				col = parseInt( $( cell ).attr( 'data-column' ), 10 ),
+				// get current column index; *always* stored on th/td
+				$th = ts.getHeaderCell( $( cell ) ),
+				col = parseInt( $th.attr( 'data-column' ), 10 ),
 				order = c.sortVars[ col ].order;
-
 			// Only call sortStart if sorting is enabled
 			c.$table.triggerHandler( 'sortStart', table );
 			// get current column sort order
@@ -1778,6 +1830,10 @@
 			ts.setHeadersCss( c );
 			ts.multisort( c );
 			ts.appendCache( c );
+			var indx;
+			for (indx = 0; indx < c.columns; indx++) {
+				c.sortVars[ indx ].count = -1;
+			}
 			if ( $.isFunction( callback ) ) {
 				callback( c.table );
 			}
@@ -1793,10 +1849,10 @@
 		},
 
 		// Natural sort - https://github.com/overset/javascript-natural-sort (date sorting removed)
-		// this function will only accept strings, or you'll see 'TypeError: undefined is not a function'
-		// I could add a = a.toString(); b = b.toString(); but it'll slow down the sort overall
 		sortNatural : function( a, b ) {
 			if ( a === b ) { return 0; }
+			a = a.toString();
+			b = b.toString();
 			var aNum, bNum, aFloat, bFloat, indx, max,
 				regex = ts.regex;
 			// first try and sort Hex codes
@@ -1920,14 +1976,15 @@
 		},
 
 		applyWidgetOptions : function( table ) {
-			var indx, widget,
+			var indx, widget, wo,
 				c = table.config,
 				len = c.widgets.length;
 			if ( len ) {
 				for ( indx = 0; indx < len; indx++ ) {
 					widget = ts.getWidgetById( c.widgets[ indx ] );
 					if ( widget && widget.options ) {
-						c.widgetOptions = $.extend( true, {}, widget.options, c.widgetOptions );
+						wo = $.extend( true, {}, widget.options );
+						c.widgetOptions = $.extend( true, wo, c.widgetOptions );
 						// add widgetOptions to defaults for option validator
 						$.extend( true, ts.defaults.widgetOptions, widget.options );
 					}
@@ -2031,7 +2088,7 @@
 						if ( !widget.priority ) { widget.priority = 10; }
 						widgets[ indx ] = widget;
 					} else if ( c.debug ) {
-						console.warn( '"' + names[ indx ] + '" widget code does not exist!' );
+						console.warn( '"' + names[ indx ] + '" was enabled, but the widget code has not been loaded!' );
 					}
 				}
 				// sort widgets by priority
@@ -2050,22 +2107,22 @@
 					}
 				}
 				if ( c.debug && console.groupEnd ) { console.groupEnd(); }
-				// callback executed on init only
-				if ( !init && typeof callback === 'function' ) {
-					callback( table );
-				}
 			}
 			c.timerReady = setTimeout( function() {
 				table.isApplyingWidgets = false;
 				$.data( table, 'lastWidgetApplication', new Date() );
 				c.$table.triggerHandler( 'tablesorter-ready' );
+				// callback executed on init only
+				if ( !init && typeof callback === 'function' ) {
+					callback( table );
+				}
+				if ( c.debug ) {
+					widget = c.widgets.length;
+					console.log( 'Completed ' +
+						( init === true ? 'initializing ' : 'applying ' ) + widget +
+						' widget' + ( widget !== 1 ? 's' : '' ) + ts.benchmark( time ) );
+				}
 			}, 10 );
-			if ( c.debug ) {
-				widget = c.widgets.length;
-				console.log( 'Completed ' +
-					( init === true ? 'initializing ' : 'applying ' ) + widget +
-					' widget' + ( widget !== 1 ? 's' : '' ) + ts.benchmark( time ) );
-			}
 		},
 
 		removeWidget : function( table, name, refreshing ) {
@@ -2103,6 +2160,7 @@
 					c.widgetInit[ name[ index ] ] = false;
 				}
 			}
+			c.$table.triggerHandler( 'widgetRemoveEnd', table );
 		},
 
 		refreshWidgets : function( table, doAll, dontapply ) {
@@ -2213,7 +2271,7 @@
 				cells = $rows[ i ].cells;
 				for ( j = 0; j < cells.length; j++ ) {
 					cell = cells[ j ];
-					rowIndex = cell.parentNode.rowIndex;
+					rowIndex = i;
 					rowSpan = cell.rowSpan || 1;
 					colSpan = cell.colSpan || 1;
 					if ( typeof matrix[ rowIndex ] === 'undefined' ) {
@@ -2248,7 +2306,40 @@
 					}
 				}
 			}
+			ts.checkColumnCount($rows, matrix, matrixrow.length);
 			return matrixrow.length;
+		},
+
+		checkColumnCount : function($rows, matrix, columns) {
+			// this DOES NOT report any tbody column issues, except for the math and
+			// and column selector widgets
+			var i, len,
+				valid = true,
+				cells = [];
+			for ( i = 0; i < matrix.length; i++ ) {
+				// some matrix entries are undefined when testing the footer because
+				// it is using the rowIndex property
+				if ( matrix[i] ) {
+					len = matrix[i].length;
+					if ( matrix[i].length !== columns ) {
+						valid = false;
+						break;
+					}
+				}
+			}
+			if ( !valid ) {
+				$rows.each( function( indx, el ) {
+					var cell = el.parentElement.nodeName;
+					if ( cells.indexOf( cell ) < 0 ) {
+						cells.push( cell );
+					}
+				});
+				console.error(
+					'Invalid or incorrect number of columns in the ' +
+					cells.join( ' or ' ) + '; expected ' + columns +
+					', but found ' + len + ' columns'
+				);
+			}
 		},
 
 		// automatically add a colgroup with col elements set to a percentage width
@@ -2487,7 +2578,7 @@
 				.join( c.namespace + ' ' );
 			$t
 				.removeData( 'tablesorter' )
-				.unbind( events.replace( ts.regex.spaces, ' ' ) );
+				.off( events.replace( ts.regex.spaces, ' ' ) );
 			c.$headers
 				.add( $f )
 				.removeClass( [ ts.css.header, c.cssHeader, c.cssAsc, c.cssDesc, ts.css.sortAsc, ts.css.sortDesc, ts.css.sortNone ].join( ' ' ) )
@@ -2496,9 +2587,10 @@
 				.attr( 'aria-disabled', 'true' );
 			$r
 				.find( c.selectorSort )
-				.unbind( ( 'mousedown mouseup keypress '.split( ' ' ).join( c.namespace + ' ' ) ).replace( ts.regex.spaces, ' ' ) );
+				.off( ( 'mousedown mouseup keypress '.split( ' ' ).join( c.namespace + ' ' ) ).replace( ts.regex.spaces, ' ' ) );
 			ts.restoreHeaders( table );
 			$t.toggleClass( ts.css.table + ' ' + c.tableClass + ' tablesorter-' + c.theme, removeClasses === false );
+			$t.removeClass(c.namespace.slice(1));
 			// clear flag in case the plugin is initialized again
 			table.hasInitialized = false;
 			delete table.config.cache;

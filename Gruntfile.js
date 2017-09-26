@@ -278,8 +278,10 @@ module.exports = function( grunt ) {
 
 		uglify: {
 			options: {
-				preserveComments: function( node, comment ){
-					return /^!/.test( comment.value );
+				output: {
+					comments: /^!/,
+					beautify: false,
+					ie8: true
 				},
 				report: 'gzip'
 			},

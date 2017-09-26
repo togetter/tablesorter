@@ -111,8 +111,9 @@ Core plugin tested
 ========================
 OPTIONS:
 	cssAsc, cssChildRow, cssDesc, cssHeader, cssHeaderRow, cssInfoBlock, dateFormat, emptyTo, headerList,
-	headers, ignoreCase, initialized, parsers, sortList, sortLocaleCompare, sortReset, stringTo, tableClass,
-	usNumberFormat, widgets (just zebra), sortAppend, sortForce, sortMultiSortKey, sortResetKey, numberSorter
+	headers, ignoreCase, initialized, parsers, sortList, sortLocaleCompare, sortReset, sortRestart, stringTo, tableClass,
+	usNumberFormat, widgets (just zebra), sortAppend, sortForce, sortMultiSortKey, sortResetKey, numberSorter,
+	cssIconAsc, cssIconDesc, cssIconNone, cssIconDisabled
 
 METHODS:
 	addRows, applyWidgets, destroy, sorton, sortReset, update/updateRow, updateAll, updateCell
@@ -123,9 +124,9 @@ EVENTS:
 Not yet tested
 =========================
 OPTIONS:
-	cancelSelection, cssIcon, cssProcessing, debug, delayInit, headerTemplate, initWidgets, onRenderHeader,
+	cancelSelection, cssProcessing, debug, delayInit, headerTemplate, initWidgets, onRenderHeader,
 	onRenderTemplate, selectorHeaders, selectorRemove, selectorSort, serverSideSorting, showProcessing,
-	sortInitialOrder, sortRestart, strings,
+	sortInitialOrder, strings,
 	textExtraction, textSorter, theme, widthFixed, widgets (also need priority testing)
 
 METHODS:
@@ -161,17 +162,37 @@ jQuery(function($){
 		},
 		undef, c1, c2, c3, c4, e, i, t;
 
+	/* test widget */
+	ts.addWidget({
+		id : 'test',
+		options: {
+			'test': []
+		},
+		format: function() {}
+	});
+
 	$table1
 		.on('tablesorter-initialized', function(){
 			init = true;
 		})
-		.tablesorter();
+		.tablesorter({
+			widgets: ['test'],
+			widgetOptions: {
+				// check widget option defaults across tables
+				test: [0,1]
+			}
+		});
 
 	$table2.tablesorter({
 		headers: {
 			0: { sorter: 'text' },
 			1: { sorter: 'text' },
 			2: { sorter: false }
+		},
+		widgets: ['test'],
+		widgetOptions: {
+			// check widget option defaults across tables
+			test: [0]
 		}
 	});
 
@@ -182,7 +203,9 @@ jQuery(function($){
 			0: { empty : 'top' }, // sort empty cells to the top
 			2: { string: 'min' }, // non-numeric content is treated as a MIN value
 			3: { sorter: 'digit', empty : 'zero', string : 'top' }
-		}
+		},
+		// check widget option defaults across tables
+		widgets: ['test']
 	});
 
 	$table4.tablesorter({
@@ -672,9 +695,6 @@ jQuery(function($){
 			'a', 'b', 'c1', 'c2'
 		];
 		assert.cacheCompare( $('#testblock table')[0], 'all', t, 'colspans not duplicated but textExtraction defined' );
-
-
-
 	});
 
 	QUnit.test( 'sorton methods', function(assert) {
@@ -698,11 +718,12 @@ jQuery(function($){
 		assert.equal( c3.sortList + '', '0,0,1,1,2,0', 'sorton next/opposite/same [0,"n"],[1,"o"],[2,"s"]' );
 
 	});
-
+/*
 	QUnit.test( 'sort Restart', function(assert) {
 		assert.expect(1);
 		var done = assert.async();
 		c1.sortRestart = true;
+		QUnit.start();
 		$.tablesorter.sortReset( c1, function(){
 			// 1) click on header one
 			$table1.one('sortEnd', function(){
@@ -721,9 +742,8 @@ jQuery(function($){
 			});
 			c1.$headers.eq(1).click();
 		});
-
 	});
-
+*/
 	QUnit.test( 'sort Events', function(assert) {
 		assert.expect(1);
 
@@ -895,6 +915,37 @@ jQuery(function($){
 		assert.equal( t.hasClass(ts.css.sortAsc) || t.hasClass(ts.css.sortDesc), false, 'Testing sortReset' );
 	});
 
+	QUnit.test( 'testing header css icons', function(assert) {
+		var done = assert.async();
+		assert.expect(1);
+		$('#testblock2').html('<table class="tablesorter"><thead><tr>' +
+				'<th>A</th>' +
+				'<th>B</th>' +
+				'<th>C</th>' +
+				'<th class="sorter-false">D</th>' +
+			'</tr></thead><tbody></tbody></table>')
+		.find('table')
+		.tablesorter({
+			sortList: [[0,0], [1,1]],
+			headerTemplate:'{content} {icon}',
+			cssIconAsc: 'asc',
+			cssIconDesc: 'desc',
+			cssIconNone: 'none',
+			cssIconDisabled: 'disabled',
+			initialized: function(table){
+				var i,
+					results = [],
+					expected = ['asc', 'desc', 'none', 'disabled'],
+					c = table.config;
+				for (i = 0; i < c.columns; i++){
+					results[i] = c.$headers.eq(i).find('.' + ts.css.icon).hasClass(expected[i]);
+				}
+				assert.deepEqual( results, [true, true, true, true], 'applies correct cssIcon classes' );
+				done();
+			}
+		});
+	});
+
 	/************************************************
 		test apply widgets function using zebra widget
 	************************************************/
@@ -906,6 +957,14 @@ jQuery(function($){
 		});
 		return t;
 	};
+
+	QUnit.test( 'check widgetOption defaults across tables', function(assert) {
+		assert.expect(4);
+		assert.deepEqual(c1.widgetOptions.test, [0,1], 'widget option properly set');
+		assert.deepEqual(c2.widgetOptions.test, [0], 'widget option properly set');
+		assert.deepEqual(c3.widgetOptions.test, [], 'default widget option set on table');
+		assert.deepEqual(ts.defaults.widgetOptions.test, [], 'default widget option set in core');
+	});
 
 	QUnit.test( 'apply zebra widget', function(assert) {
 		assert.expect(3);
@@ -923,13 +982,19 @@ jQuery(function($){
 		test has widget function
 	************************************************/
 	QUnit.test( 'has & remove zebra widget', function(assert) {
-		assert.expect(3);
+		var done = assert.async();
+		assert.expect(4);
 		c2.widgets = [ 'zebra' ];
-		$table2.trigger('applyWidgets');
-		assert.equal( ts.hasWidget(  table2, 'zebra'), true, 'table has zebra widget (using table element object)' );
-		assert.equal( ts.hasWidget( $table2, 'zebra'), true, 'table has zebra widget (using jQuery table object)' );
-		ts.removeWidget( table2, 'zebra' );
-		assert.equal( zebra() && c2.widgets.length === 0, false, 'zebra removed' );
+		$table2.trigger('applyWidgets', function() {
+			assert.equal( ts.hasWidget(  table2, 'zebra'), true, 'table has zebra widget (using table element object)' );
+			assert.equal( ts.hasWidget( $table2, 'zebra'), true, 'table has zebra widget (using jQuery table object)' );
+			$table2.one( 'widgetRemoveEnd', function() {
+				assert.ok( true, 'widgetRemoveEnd fired');
+				assert.equal( zebra() && c2.widgets.length === 0, false, 'zebra removed' );
+				done();
+			});
+			ts.removeWidget( table2, 'zebra' );
+		});
 	});
 
 	/************************************************
